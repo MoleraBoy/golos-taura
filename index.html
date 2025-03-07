@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Golos Taura</title>
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+    />
+    <style>
+      body {
+        font-family: "Garamond", serif;
+        background-color: #f5f5dc;
+        color: #333;
+        margin: 20px;
+        transition: background-color 0.3s, color 0.3s;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden; /* Impede a rolagem horizontal */
+      }
+      body.dark-theme {
+        background-color: #1a1a1a;
+        color: #e0e0e0;
+      }
+      h1 {
+        text-align: center; /* Centraliza o título */
+        font-size: 2.5em;
+        text-decoration: underline;
+        margin: 0 auto; /* Garante centralização */
+      }
+      h2 {
+        color: #8b0000;
+        font-size: 1.8em;
+        margin-top: 20px;
+      }
+      p {
+        font-size: 1.1em;
+        line-height: 1.5;
+      }
+      .game-info {
+        font-size: 0.9em;
+        font-style: italic;
+        color: #555;
+      }
+      .dark-theme .game-info {
+        color: #a0a0a0;
+      }
+      .menu-btn {
+        border-radius: 50%;
+        padding: 10px;
+        background-color: #8b0000;
+        color: white;
+        border: none;
+        cursor: pointer;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1000;
+      }
+      .filter-menu {
+        display: none;
+        position: fixed;
+        bottom: 80px;
+        right: 20px;
+        background-color: white;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        padding: 10px;
+        z-index: 1000;
+        width: 250px;
+      }
+      .dark-theme .filter-menu {
+        background-color: #333;
+        border-color: #555;
+        color: #e0e0e0;
+      }
+      .filter-menu label {
+        margin-right: 10px;
+      }
+      .suggestions {
+        position: absolute;
+        background-color: white;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        z-index: 1000;
+        width: 100%;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+      .dark-theme .suggestions {
+        background-color: #333;
+        border-color: #555;
+        color: #e0e0e0;
+      }
+      .suggestion-item {
+        padding: 5px;
+        cursor: pointer;
+      }
+      .suggestion-item:hover {
+        background-color: #f0f0f0;
+      }
+      .dark-theme .suggestion-item:hover {
+        background-color: #444;
+      }
+      .favorite {
+        color: #8b0000;
+        cursor: pointer;
+        font-size: 1.2em;
+      }
+      .dark-theme .favorite {
+        color: #ff4444;
+      }
+      .clear-btn {
+        background-color: transparent;
+        border: none;
+        cursor: pointer;
+        font-size: 1.2em;
+      }
+      .theme-toggle-btn {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        background-color: #333;
+        color: #ffcc00;
+        border: none;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        transition: background-color 0.3s, color 0.3s;
+      }
+      .theme-toggle-btn.dark {
+        background-color: #ffcc00;
+        color: #333;
+      }
+      @media (max-width: 768px) {
+        body {
+          width: 100%;
+          max-width: 100%;
+          overflow-x: hidden; /* Impede a rolagem horizontal */
+          box-sizing: border-box;
+        }
+        h1 {
+          font-size: 2em;
+          text-align: center; /* Centraliza o título no celular */
+        }
+        h2 {
+          font-size: 1.5em;
+        }
+        .filter-menu {
+          width: 90%;
+          right: 5%;
+          bottom: 70px;
+        }
+      }
+      .acao,
+      .tracos {
+        font-size: 0.85em;
+        font-style: italic;
+      }
+    </style>
+    <script>
+      const animais = [
+        {
+          nome: "Alce",
+          tipo: "Fera Grande",
+          ca: 10,
+          pv: "11 (2d10)",
+          deslocamento: "15 m",
+          forca: 16,
+          destreza: 10,
+          constituicao: 11,
+          inteligencia: 2,
+          sabedoria: 10,
+          carisma: 6,
+          habilidades: "Percepção +2",
+          sentidos: "Visão no Escuro 18 m, Percepção Passiva 12",
+          nd: "1/4",
+          acao: "Cabeçada Aríete. Jogada de Ataque Corpo a Corpo: +5 para acertar, alcance 1,5 m. Dano: 6 (1d6 + 3) Contundente.",
+        },
+        {
+          nome: "Aranha",
+          tipo: "Fera Minúscula",
+          ca: 12,
+          pv: "1 (1d4 - 1)",
+          deslocamento: "6 m, Escalada 6 m",
+          forca: 2,
+          destreza: 14,
+          constituicao: 8,
+          inteligencia: 1,
+          sabedoria: 10,
+          carisma: 2,
+          habilidades: "Furtividade +4",
+          sentidos: "Visão no Escuro 9 m, Percepção Passiva 10",
+          nd: "0",
+          acao: "Mordida. Jogada de Ataque Corpo a Corpo: +4 para acertar, alcance 1,5 m. Dano: 1 Perfurante mais 2 (1d4) Venenoso.",
+        },
+        {
+          nome: "Cabra",
+          tipo: "Fera Média",
+          ca: 10,
+          pv: "4 (1d8)",
+          deslocamento: "12 m, Escalada 9 m",
+          forca: 11,
+          destreza: 10,
+          constituicao: 11,
+          inteligencia: 2,
+          sabedoria: 10,
+          carisma: 5,
+          habilidades: "Percepção +2",
+          sentidos: "Visão no Escuro 18 m, Percepção Passiva 12",
+          nd: "0",
+          acao: "Cabeçada Aríete. Jogada de Ataque Corpo a Corpo: +2 para acertar, alcance 1,5 m. Dano: 1 Contundente, ou a cabra causa 2 (1d4) Contundente se ela tiver se movido pelo menos 6 metros em linha reta na direção do alvo imediatamente antes do ataque.",
+        },
+        {
+          nome: "Camelo",
+          tipo: "Fera Grande",
+          ca: 10,
+          pv: "17 (2d10 + 6)",
+          deslocamento: "15 m",
+          forca: 15,
+          destreza: 8,
+          constituicao: 17,
+          inteligencia: 2,
+          sabedoria: 11,
+          carisma: 5,
+          habilidades: "",
+          sentidos: "Visão no Escuro 18 m, Percepção Passiva 10",
+          nd: "1/8",
+          acao: "Mordida. Jogada de Ataque Corpo a Corpo: +4 para acertar, alcance 1,5 m. Dano: 4 (1d4 + 2) Contundente.",
+        },
+        {
+          nome: "Caranguejo",
+          tipo: "Fera Minúscula",
+          ca: 11,
+          pv: "3 (1d4 + 1)",
+          deslocamento: "6 m, Natação 6 m",
+          forca: 6,
+          destreza: 11,
+          constituicao: 12,
+          inteligencia: 1,
+          sabedoria: 8,
+          carisma: 2,
+          habilidades: "Furtividade +2",
+          sentidos: "Visão às Cegas 9 m, Percepção Passiva 9",
+          nd: "0",
+          acao: "Garra. Jogada de Ataque Corpo a Corpo: +2 para acertar, alcance 1,5 m. Dano: 1 Contundente.",
+        },
+        {
+          nome: "Caranguejo Gigante",
+          tipo: "Fera Média",
+          ca: 15,
+          pv: "13 (3d8)",
+          deslocamento: "9 m, Natação 9 m",
+          forca: 13,
+          destreza: 13,
+          constituicao: 11,
+          inteligencia: 1,
+          sabedoria: 9,
+          carisma: 3,
+          habilidades: "Furtividade +3",
+          sentidos: "Visão às Cegas 9 m, Percepção Passiva 9",
+          nd: "1/8",
+          acao: "Garra. Jogada de Ataque Corpo a Corpo: +3 para acertar, alcance 1,5 m. Dano: 4 (1d6 + 1) Contundente.",
+        },
+        {
+          nome: "Cavalo de Carga",
+          tipo: "Fera Grande",
+          ca: 10,
+          pv: "15 (2d10 + 4)",
+          deslocamento: "12 m",
+          forca: 18,
+          destreza: 10,
+          constituicao: 15,
+          inteligencia: 2,
+          sabedoria: 11,
+          carisma: 7,
+          habilidades: "",
+          sentidos: "Percepção Passiva 10",
+          nd: "1/4",
+          acao: "Cascos. Jogada de Ataque Corpo a Corpo: +6 para acertar, alcance 1,5 m. Dano: 6 (1d4 + 4) Contundente.",
+        },
+        {
+          nome: "Cavalo de Montaria",
+          tipo: "Fera Grande",
+          ca: 11,
+          pv: "13 (2d10 + 2)",
+          deslocamento: "18 m",
+          forca: 16,
+          destreza: 13,
+          constituicao: 12,
+          inteligencia: 2,
+          sabedoria: 11,
+          carisma: 7,
+          habilidades: "",
+          sentidos: "Percepção Passiva 10",
+          nd: "1/4",
+          acao: "Cascos. Jogada de Ataque Corpo a Corpo: +5 para acertar, alcance 1,5 m. Dano: 7 (1d8 + 3) Contundente.",
+        },
+        {
+          nome: "Cobra Constritora",
+          tipo: "Fera Grande",
+          ca: 13,
+          pv: "13 (2d10 + 2)",
+          deslocamento: "9 m, Natação 9 m",
+          forca: 15,
+          destreza: 14,
+          constituicao: 12,
+          inteligencia: 1,
+          sabedoria: 10,
+          carisma: 3,
+          habilidades: "Furtividade +4, Percepção +2",
+          sentidos: "Visão às Cegas 3 m, Percepção Passiva 12",
+          nd: "1/4",
+          acao: "Constrição. Salvaguarda de Força: CD 12, uma criatura Média ou menor à vista da cobra a até 1,5 metro. Falha: 7 (3d4) pontos de dano Contundente, e o alvo tem a condição Imobilizado (CD 12 para escapar).",
+        },
+        {
+          nome: "Cobra Peçonhenta",
+          tipo: "Fera Minúscula",
+          ca: 12,
+          pv: "5 (2d4)",
+          deslocamento: "9 m, Natação 9 m",
+          forca: 2,
+          destreza: 15,
+          constituicao: 11,
+          inteligencia: 1,
+          sabedoria: 10,
+          carisma: 3,
+          habilidades: "",
+          sentidos: "Visão às Cegas 3 m, Percepção Passiva 10",
+          nd: "1/8",
+          acao: "Mordida. Jogada de Ataque Corpo a Corpo: +4 para acertar, alcance 1,5 m. Dano: 4 (1d4 + 2) Perfurante mais 3 (1d6) Venenoso.",
+        },
+        {
+          nome: "Doninha",
+          tipo: "Fera Minúscula",
+          ca: 13,
+          pv: "1 (1d4 - 1)",
+          deslocamento: "9 m, Escalada 9 m",
+          forca: 3,
+          destreza: 16,
+          constituicao: 8,
+          inteligencia: 2,
+          sabedoria: 12,
+          carisma: 3,
+          habilidades: "Acrobacia +5, Furtividade +5, Percepção +3",
+          sentidos: "Visão no Escuro 18 m, Percepção Passiva 13",
+          nd: "0",
+          acao: "Mordida. Jogada de Ataque Corpo a Corpo: +5 para acertar, alcance 1,5 m. Dano: 1 Perfurante.",
+        },
+        {
+          nome: "Doninha Gigante",
+          tipo: "Fera Média",
+          ca: 13,
+          pv: "9 (2d8)",
+          deslocamento: "12 m, Escalada 9 m",
+          forca: 11,
+          destreza: 17,
+          constituicao: 10,
+          inteligencia: 4,
+          sabedoria: 12,
+          carisma: 5,
+          habilidades: "Acrobacia +5, Furtividade +5, Percepção +3",
+          sentidos: "Visão no Escuro 18 m, Percepção Passiva 13",
+          nd: "1/8",
+          acao: "Mordida. Jogada de Ataque Corpo a Corpo: +5 para acertar, alcance 1,5 m. Dano: 5 (1d4 + 3) Perfurante.",
+        },
+        {
+          nome: "Escorpião",
+          tipo: "Fera Minúscula",
+          ca: 11,
+          pv: "1 (1d4 - 1)",
+          deslocamento: "3 m",
+          forca: 2,
+          destreza: 11,
+          constituicao: 8,
+          inteligencia: 1,
+          sabedoria: 8,
+          carisma: 2,
+          habilidades: "",
+          sentidos: "Visão às Cegas 3 m, Percepção Passiva 9",
+          nd: "0",
+          acao: "Ferroada. Jogada de Ataque Corpo a Corpo: +2 para acertar, alcance 1,5 m. Dano: 1 Perfurante mais 3 (1d6) Venenoso.",
+        },
+        {
+          nome: "Gato",
+          tipo: "Fera Minúscula",
+          ca: 12,
+          pv: "2 (1d4)",
+          deslocamento: "12 m, Escalada 12 m",
+          forca: 3,
+          destreza: 15,
+          constituicao: 10,
+          inteligencia: 3,
+          sabedoria: 12,
+          carisma: 7,
+          habilidades: "Furtividade +4, Percepção +3",
+          sentidos: "Visão no Escuro 18 m, Percepção Passiva 13",
+          nd: "0",
+          acao: "Arranhar. Jogada de Ataque Corpo a Corpo: +4 para acertar, alcance 1,5 m. Dano: 1 Cortante.",
+        },
+        {
+          nome: "Javali",
+          tipo: "Fera Média",
+          ca: 11,
+          pv: "13 (2d8 + 4)",
+          deslocamento: "12 m",
+          forca: 13,
+          destreza: 11,
+          constituicao: 14,
+          inteligencia: 2,
+          sabedoria: 9,
+          carisma: 5,
+          habilidades: "",
+          sentidos: "Percepção Passiva 9",
+          nd: "1/4",
+          acao: "Investida. Jogada de Ataque Corpo a Corpo: +3 para acertar, alcance 1,5 m. Dano: 4 (1d6 + 1) Perfurante.",
+        },
+        {
+          nome: "Lagarto",
+          tipo: "Fera Minúscula",
+          ca: 10,
+          pv: "2 (1d4)",
+          deslocamento: "6 m, Escalada 6 m",
+          forca: 2,
+          destreza: 11,
+          constituicao: 10,
+          inteligencia: 1,
+          sabedoria: 8,
+          carisma: 3,
+          habilidades: "",
+          sentidos: "Visão no Escuro 9 m, Percepção Passiva 9",
+          nd: "0",
+          acao: "Mordida. Jogada de Ataque Corpo a Corpo: +2 para acertar, alcance 1,5 m. Dano: 1 Perfurante.",
+        },
+        {
+          nome: "Lobo",
+          tipo: "Fera Média",
+          ca: 12,
+          pv: "11 (2d8 + 2)",
+          deslocamento: "12 m",
+          forca: 14,
+          destreza: 15,
+          constituicao: 12,
+          inteligencia: 3,
+          sabedoria: 12,
+          carisma: 6,
+          habilidades: "Furtividade +4, Percepção +5",
+          sentidos: "Visão no Escuro 18 m, Percepção Passiva 15",
+          nd: "1/4",
+          acao: "Mordida. Jogada de Ataque Corpo a Corpo: +4 para acertar, alcance 1,5 m. Dano: 5 (1d6 + 2) Perfurante e o alvo tem a condição Caído se for Médio ou menor.",
+        },
+        {
+          nome: "Mastim",
+          tipo: "Fera Média",
+          ca: 12,
+          pv: "5 (1d8 + 1)",
+          deslocamento: "12 m",
+          forca: 13,
+          destreza: 14,
+          constituicao: 12,
+          inteligencia: 3,
+          sabedoria: 12,
+          carisma: 7,
+          habilidades: "Percepção +5",
+          sentidos: "Visão no Escuro 18 m, Percepção Passiva 15",
+          nd: "1/8",
+          acao: "Mordida. Jogada de Ataque Corpo a Corpo: +3 para acertar, alcance 1,5 m. Dano: 4 (1d6 + 1) Perfurante, e o alvo tem a condição Caído se for Grande ou menor.",
+        },
+        {
+          nome: "Mula",
+          tipo: "Fera Média",
+          ca: 10,
+          pv: "11 (2d8 + 2)",
+          deslocamento: "12 m",
+          forca: 14,
+          destreza: 10,
+          constituicao: 13,
+          inteligencia: 2,
+          sabedoria: 10,
+          carisma: 5,
+          habilidades: "Animal de Carga.",
+          sentidos: "Percepção Passiva 10",
+          nd: "1/8",
+          acao: "Cascos. Jogada de Ataque Corpo a Corpo: +4 para acertar, alcance 1,5 m. Dano: 4 (1d4 + 2) Contundente.",
+        },
+        {
+          nome: "Pantera",
+          tipo: "Fera Média",
+          ca: 12,
+          pv: "13 (3d8)",
+          deslocamento: "15 m, Escalada 12 m",
+          forca: 14,
+          destreza: 15,
+          constituicao: 10,
+          inteligencia: 3,
+          sabedoria: 14,
+          carisma: 7,
+          habilidades: "Furtividade +6, Percepção +4",
+          sentidos: "Visão no Escuro 18 m, Percepção Passiva 14",
+          nd: "1/4",
+          acao: "Ataques Múltiplos. A pantera realiza um ataque usando Bote e usa Rondar. Bote: Jogada de Ataque Corpo a Corpo: +4 para acertar, alcance 1,5 m. Dano: 4 (1d4 + 2) Cortante, ou a pantera causa 7 (2d4 + 2) pontos de dano Cortante se teve Vantagem na jogada de ataque. Rondar: A pantera se move até metade do seu Deslocamento sem provocar Ataques de Oportunidade.",
+        },
+        {
+          nome: "Polvo",
+          tipo: "Fera Pequena",
+          ca: 12,
+          pv: "3 (1d6)",
+          deslocamento: "1,5 m, Natação 9 m",
+          forca: 4,
+          destreza: 15,
+          constituicao: 11,
+          inteligencia: 3,
+          sabedoria: 10,
+          carisma: 4,
+          habilidades: "Furtividade +6, Percepção +2",
+          sentidos: "Visão no Escuro 9 m, Percepção Passiva 12",
+          nd: "0",
+          acao: "Tentáculos. Jogada de Ataque Corpo a Corpo: +4 para acertar, alcance 1,5 m. Dano: 1 Contundente.",
+        },
+        {
+          nome: "Pônei",
+          tipo: "Fera Média",
+          ca: 10,
+          pv: "11 (2d8 + 2)",
+          deslocamento: "12 m",
+          forca: 15,
+          destreza: 10,
+          constituicao: 13,
+          inteligencia: 2,
+          sabedoria: 11,
+          carisma: 7,
+          habilidades: "",
+          sentidos: "Percepção Passiva 10",
+          nd: "1/8",
+          acao: "Cascos. Jogada de Ataque Corpo a Corpo: +4 para acertar, alcance 1,5 m. Dano: 4 (1d4 + 2) Contundente.",
+        },
+        {
+          nome: "Rã",
+          tipo: "Fera Minúscula",
+          ca: 11,
+          pv: "1 (1d4 - 1)",
+          deslocamento: "6 m, Natação 6 m",
+          forca: 1,
+          destreza: 13,
+          constituicao: 8,
+          inteligencia: 1,
+          sabedoria: 8,
+          carisma: 3,
+          habilidades: "Furtividade +3, Percepção +1",
+          sentidos: "Visão no Escuro 9 m, Percepção Passiva 11",
+          nd: "0",
+          acao: "Mordida. Jogada de Ataque Corpo a Corpo: +3 para acertar, alcance 1,5 m. Dano: 1 Perfurante.",
+        },
+        {
+          nome: "Rato",
+          tipo: "Fera Minúscula",
+          ca: 10,
+          pv: "1 (1d4 - 1)",
+          deslocamento: "6 m, Escalada 6 m",
+          forca: 2,
+          destreza: 11,
+          constituicao: 9,
+          inteligencia: 2,
+          sabedoria: 10,
+          carisma: 4,
+          habilidades: "Percepção +2",
+          sentidos: "Visão no Escuro 9 m, Percepção Passiva 12",
+          nd: "0",
+          acao: "Mordida. Jogada de Ataque Corpo a Corpo: +2 para acertar, alcance 1,5 m. Dano: 1 Perfurante.",
+        },
+        {
+          nome: "Texugo",
+          tipo: "Fera Minúscula",
+          ca: 11,
+          pv: "5 (1d4 + 3)",
+          deslocamento: "6 m, Escavação 1,5 m",
+          forca: 10,
+          destreza: 11,
+          constituicao: 16,
+          inteligencia: 2,
+          sabedoria: 12,
+          carisma: 5,
+          habilidades: "Percepção +3",
+          sentidos: "Visão no Escuro 9 m, Percepção Passiva 13",
+          nd: "0",
+          acao: "Mordida. Jogada de Ataque Corpo a Corpo: +2 para acertar, alcance 1,5 m. Dano: 1 Perfurante.",
+        },
+        {
+          nome: "Texugo Gigante",
+          tipo: "Fera Média",
+          ca: 13,
+          pv: "15 (2d8 + 6)",
+          deslocamento: "9 m, Escavação 3 m",
+          forca: 13,
+          destreza: 10,
+          constituicao: 17,
+          inteligencia: 2,
+          sabedoria: 12,
+          carisma: 5,
+          habilidades: "Percepção +3",
+          sentidos: "Visão no Escuro 18 m, Percepção Passiva 13",
+          nd: "1/4",
+          acao: "Mordida. Jogada de Ataque Corpo a Corpo: +3 para acertar, alcance 1,5 m. Dano: 6 (2d4 + 1) Perfurante.",
+        },
+      ];
+
+      let favoritos = [];
+      let filtros = {
+        nd0: false,
+        nd1_8: false,
+        nd1_4: false,
+        favoritos: false,
+      };
+
+      function toggleMenu() {
+        const menu = document.getElementById("filter-menu");
+        menu.style.display = menu.style.display === "block" ? "none" : "block";
+      }
+
+      function toggleFavorito(nome) {
+        if (favoritos.includes(nome)) {
+          favoritos = favoritos.filter((a) => a !== nome);
+        } else {
+          favoritos.push(nome);
+        }
+        atualizarAnimais();
+      }
+
+      function atualizarAnimais() {
+        const animaisFiltrados = animais.filter((animal) => {
+          const filtroND0 = !filtros.nd0 || animal.nd === "0";
+          const filtroND1_8 = !filtros.nd1_8 || animal.nd === "1/8";
+          const filtroND1_4 = !filtros.nd1_4 || animal.nd === "1/4";
+          const filtroFavoritos =
+            !filtros.favoritos || favoritos.includes(animal.nome);
+
+          return filtroND0 && filtroND1_8 && filtroND1_4 && filtroFavoritos;
+        });
+
+        const container = document.getElementById("animais-container");
+        container.innerHTML = "";
+
+        animaisFiltrados.forEach((animal) => {
+          const animalElement = document.createElement("div");
+          animalElement.className = "col-md-6";
+          animalElement.innerHTML = `
+            <h2>${
+              animal.nome
+            } <span class="favorite" onclick="toggleFavorito('${
+            animal.nome
+          }')">${favoritos.includes(animal.nome) ? "☠️" : "☠"}</span></h2>
+            <p>Tipo: ${animal.tipo}</p>
+            <p>CA: ${animal.ca}</p>
+            <p>PV: ${animal.pv}</p>
+            <p>Deslocamento: ${animal.deslocamento}</p>
+            <p>Força: ${animal.forca}, Destreza: ${
+            animal.destreza
+          }, Constituição: ${animal.constituicao}</p>
+            <p>Inteligência: ${animal.inteligencia}, Sabedoria: ${
+            animal.sabedoria
+          }, Carisma: ${animal.carisma}</p>
+            <p>Habilidades: ${animal.habilidades}</p>
+            <p>Sentidos: ${animal.sentidos}</p>
+            <p>ND: ${animal.nd}</p>
+            <p class="acao">Ação: ${animal.acao}</p>
+          `;
+          container.appendChild(animalElement);
+        });
+      }
+
+      function aplicarFiltros() {
+        filtros.nd0 = document.getElementById("filtro-nd0").checked;
+        filtros.nd1_8 = document.getElementById("filtro-nd1-8").checked;
+        filtros.nd1_4 = document.getElementById("filtro-nd1-4").checked;
+        filtros.favoritos = document.getElementById("filtro-favoritos").checked;
+        atualizarAnimais();
+      }
+
+      function limparFiltros() {
+        document.getElementById("filtro-nd0").checked = false;
+        document.getElementById("filtro-nd1-8").checked = false;
+        document.getElementById("filtro-nd1-4").checked = false;
+        document.getElementById("filtro-favoritos").checked = false;
+        atualizarAnimais();
+      }
+
+      function toggleTheme() {
+        const body = document.body;
+        const themeToggleBtn = document.getElementById("theme-toggle-btn");
+        if (body.classList.contains("dark-theme")) {
+          body.classList.remove("dark-theme");
+          themeToggleBtn.classList.remove("dark");
+          localStorage.setItem("theme", "light");
+        } else {
+          body.classList.add("dark-theme");
+          themeToggleBtn.classList.add("dark");
+          localStorage.setItem("theme", "dark");
+        }
+      }
+
+      function detectSystemTheme() {
+        const prefersDarkScheme = window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        );
+        const savedTheme = localStorage.getItem("theme");
+        if (
+          savedTheme === "dark" ||
+          (prefersDarkScheme.matches && savedTheme !== "light")
+        ) {
+          document.body.classList.add("dark-theme");
+          document.getElementById("theme-toggle-btn").classList.add("dark");
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        detectSystemTheme();
+        atualizarAnimais();
+      });
+    </script>
+  </head>
+  <body>
+    <h1>Golos Taura</h1>
+
+    <div class="container">
+      <div class="row mb-3">
+        <div class="col-md-12 d-flex">
+          <input
+            type="text"
+            id="pesquisa"
+            class="form-control"
+            placeholder="Pesquisar Animais..."
+            oninput="mostrarSugestoes()"
+          />
+          <button class="clear-btn" onclick="limparFiltros()">🧹</button>
+        </div>
+        <div id="sugestoes" class="suggestions"></div>
+      </div>
+
+      <div class="row" id="animais-container">
+        <!-- Os animais serão carregados aqui dinamicamente -->
+      </div>
+    </div>
+
+    <button class="menu-btn" onclick="toggleMenu()">☰</button>
+    <div id="filter-menu" class="filter-menu">
+      <h5>Filtros</h5>
+      <div>
+        <label
+          ><input type="checkbox" id="filtro-nd0" onchange="aplicarFiltros()" />
+          ND 0</label
+        ><br />
+        <label
+          ><input
+            type="checkbox"
+            id="filtro-nd1-8"
+            onchange="aplicarFiltros()"
+          />
+          ND 1/8</label
+        ><br />
+        <label
+          ><input
+            type="checkbox"
+            id="filtro-nd1-4"
+            onchange="aplicarFiltros()"
+          />
+          ND 1/4</label
+        ><br />
+        <label
+          ><input
+            type="checkbox"
+            id="filtro-favoritos"
+            onchange="aplicarFiltros()"
+          />
+          Animais Favoritos</label
+        >
+      </div>
+    </div>
+
+    <button
+      id="theme-toggle-btn"
+      class="theme-toggle-btn"
+      onclick="toggleTheme()"
+    >
+      💡
+    </button>
+
+    <footer>
+      <p style="text-align: center">Na lû thind helluvin</p>
+    </footer>
+  </body>
+</html>
